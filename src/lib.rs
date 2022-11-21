@@ -1,7 +1,8 @@
 use num_primes::{BigUint, Generator, Verification};
 use num_traits::cast::ToPrimitive;
-use num_traits::Zero;
-use std::convert::TryInto;
+// use num_traits::Zero;
+// use std::collections::HashMap;
+// use std::convert::TryInto;
 
 // Generate a random prime number of size bits
 // Parameters: size: size of the prime number in bits
@@ -25,7 +26,7 @@ pub fn calculate_q(p: &BigUint) -> Result<BigUint, String> {
     let one: BigUint = BigUint::new(vec![1]);
     let two: BigUint = BigUint::new(vec![2]);
     let q: BigUint = (p - one) / two;
-    println!("q: {}", q);
+
     // Check if the number is a Composite Number
     if Verification::is_composite(&q) {
         return Ok(q);

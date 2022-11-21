@@ -1,3 +1,5 @@
+extern crate postgres;
+
 use authetications::auth_server::{Auth, AuthServer};
 use authetications::{
     AuthServiceRequest, AuthServiceResponse, AuthenticationAnswerRequest,
@@ -6,7 +8,10 @@ use authetications::{
 };
 use lib::{calculate_q, generate_prime, generate_random, generators_g};
 use num_primes::{BigUint, Generator};
+use postgres::Client;
 use std::collections::HashMap;
+use std::fs;
+use tokio_postgres::NoTls;
 use tonic::{transport::Server, Request, Response, Status};
 use uuid::Uuid;
 
@@ -16,16 +21,21 @@ pub mod authetications {
 
 pub mod lib;
 
-#[derive(Debug, Default, Clone, PartialEq, Eq)]
+const INIT_SQL: &str = "./schema.sql";
+
+use std::sync::{Arc, Mutex};
+
+type Users = Arc<Mutex<HashMap<String, User>>>;
+
+#[derive(Debug)]
 pub struct AuthService {
-    pub p: BigUint,                                      //prime number  p
-    pub q: BigUint,                                      // q = p - 1 / 2
-    pub g: Vec<BigUint>,                                 // generators g
-    pub i: BigUint,                                      // i = g^a mod p
-    pub h: BigUint,                                      // h = g^b mod p
-    pub h_i: BigUint,                                    // h_i = g^ab mod p
-    pub users: HashMap<String, User>, // users hashmap key = user_id, value = User
-    pub authentication: HashMap<String, Authentication>, // authentication hashmap key = auth_id, value = Authentication
+    pub p: BigUint,      //prime number  p
+    pub q: BigUint,      // q = p - 1 / 2
+    pub g: Vec<BigUint>, // generators g
+    pub i: BigUint,      // i = g^a mod p
+    pub h: BigUint,      // h = g^b mod p
+    pub h_i: BigUint,    // h_i = g^ab mod p
+    users: Users,
 }
 
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
@@ -35,14 +45,9 @@ pub struct User {
     pub y2: BigUint,     // y2 = h^x mod p
 }
 
-// #[derive(Debug, Default, Clone, PartialEq, Eq)]
-// pub struct Vector<User> {
-//     pub users: Vec<User>,
-// }
-
 #[derive(Debug, Default, Clone, PartialEq, Eq)]
 pub struct Authentication {
-    pub user: String,    // user id
+    pub user_id: String, // user id
     pub r1: BigUint,     // r1 = g^k mod p
     pub r2: BigUint,     // r2 = h^k mod p
     pub auth_id: String, // random string
@@ -55,6 +60,8 @@ impl Auth for AuthService {
         &self,
         request: Request<AuthServiceRequest>,
     ) -> Result<Response<AuthServiceResponse>, Status> {
+        println!("Got a request: {:?}", request);
+
         let reply = AuthServiceResponse {
             p: format!("{}", self.p.clone()).into(),
             q: format!("{}", self.q.clone()).into(),
@@ -87,9 +94,18 @@ impl Auth for AuthService {
             req.y2.parse::<BigUint>().unwrap(),
         );
 
-        //self.users.insert(user_id.clone(), new_registration);
-        println!("==========REGISTER==========");
-        println!("self: {:?}", &self);
+        let mut new_hashmap: HashMap<String, User> = HashMap::new();
+        new_hashmap.insert(user_id.clone(), new_registration);
+
+        let new_users = Arc::new(Mutex::new(new_hashmap));
+        println!("new_users: {:?}", new_users);
+
+        {
+            let mut users = self.users.lock().unwrap();
+            users.extend(new_users.lock().unwrap().clone());
+        }
+
+        println!("self users: {:?}", self.users);
 
         let reply: RegisterResponse = RegisterResponse {};
 
@@ -121,10 +137,16 @@ impl Auth for AuthService {
             c.clone(),
         );
 
-        let mut authentication: HashMap<String, Authentication> = self.authentication.clone();
-        authentication.insert(auth_id.clone(), new_authentication);
-
-        println!("authentication: {:?}", authentication);
+        // self.db.execute(
+        //     "INSERT INTO users (auth_id, r1, r2, c) VALUES ($1, $2, $3, $4) WHERE user_id = $5",
+        //     &[
+        //         &auth_id,
+        //         &new_authentication.r1,
+        //         &new_authentication.r2,
+        //         &c,
+        //         &req.user,
+        //     ],
+        // )?;
 
         let reply: AuthenticationChallengeResponse = AuthenticationChallengeResponse {
             auth_id: auth_id.clone(),
@@ -146,14 +168,63 @@ impl Auth for AuthService {
         let auth_id: String = req.auth_id;
         println!("verify_authentication: auth_id: {}", &auth_id);
 
-        // let test = self.authentication.get_key_value(&auth_id);
-        println!("test: {:?}", &self);
+        println!("==========verify_authentication==========");
+        // let authentication: &Authentication = self.get_authentication(auth_id).unwrap();
+        // println!("test: {:?}", &authentication);
 
         let reply: AuthenticationAnswerResponse = AuthenticationAnswerResponse {
-            session_id: format!("s: {},  auth_id: {}", req.s, &auth_id).into(),
+            session_id: format!("s: {}", req.s).into(),
         };
 
         return Ok(Response::new(reply));
+    }
+}
+
+impl Default for AuthService {
+    fn default() -> Self {
+        //1) Setup steps
+        println!("1) Setup steps");
+        println!("Step 1.1) Generate Prime number p");
+        let prime: BigUint = generate_prime(10).unwrap();
+        println!("p: {}", prime);
+
+        println!("Step 1.2) Calculate q, such that p = 2q + 1");
+        let q: BigUint = calculate_q(&prime).unwrap();
+        println!("q: {}", q);
+
+        println!("Step 1.3) Generate random a and b");
+        let a: BigUint = Generator::new_composite(10);
+        println!("a: {}", a);
+        let b: BigUint = Generator::new_composite(10);
+        println!("b: {}", b);
+
+        println!("Step 1.4) Generate generators, such that g is a generator of Zp*");
+        let g: Vec<BigUint> = generators_g(&prime);
+        println!("g: {:?}", g);
+
+        println!("Step 1.5) Calculate h, i, h_i");
+
+        // A = g^a mod p
+        let i: BigUint = g[1].modpow(&a, &prime);
+        println!("A = g^a mod p = {}", i);
+
+        // h = g^b mod p
+        let h: BigUint = g[1].modpow(&b, &prime);
+        println!("h = g^b mod p = {}", h);
+
+        // h_i = g^ab mod p
+        let h_i: BigUint = g[1].modpow(&(&a * &b), &prime);
+        println!("h_i = g^ab mod p = {}", h_i);
+
+        return AuthService {
+            p: prime,
+            q,
+            g,
+            i,
+            h,
+            h_i,
+            users: Arc::new(Mutex::new(HashMap::new())),
+        };
     }
 }
 
@@ -164,9 +235,9 @@ impl User {
 }
 
 impl Authentication {
-    fn new(user: String, r1: BigUint, r2: BigUint, auth_id: String, c: BigUint) -> Self {
+    fn new(user_id: String, r1: BigUint, r2: BigUint, auth_id: String, c: BigUint) -> Self {
         return Authentication {
-            user,
+            user_id,
             r1,
             r2,
             auth_id,
@@ -176,47 +247,50 @@ impl Authentication {
 }
 
 // impl AuthService {
-//     fn insert_user(&mut self, user: User) {
-//         self.users.insert(user.user.clone(), user);
+//     fn get_user(&self, user_id: String) -> Option<&User> {
+//         return self.users.get(&user_id);
+//     }
+
+//     fn get_authentication(&self, auth_id: String) -> Option<&Authentication> {
+//         return self.authentication.get(&auth_id);
+//     }
+
+//     fn add_user(&mut self, user: User) {
+//         self.users.insert(user.user_id.clone(), user);
+//     }
+
+//     fn add_authentication(&mut self, authentication: &Authentication) {
+//         self.authentication
+//             .insert(authentication.auth_id.clone(), authentication.clone());
 //     }
 // }
 
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let prime: BigUint = generate_prime(10).unwrap();
-    println!("p: {}", prime);
-    let q: BigUint = calculate_q(&prime).unwrap();
-    println!("q: {}", q);
-    let a: BigUint = Generator::new_composite(10);
-    println!("a: {}", a);
-    let b: BigUint = Generator::new_composite(10);
-    println!("b: {}", b);
-    let g: Vec<BigUint> = generators_g(&prime);
-    println!("g: {:?}", g);
-
-    // A = g^a mod p
-    let i: BigUint = g[1].modpow(&a, &prime);
-    println!("A: {}", i);
-
-    // B = g^b mod p
-    let h: BigUint = g[1].modpow(&b, &prime);
-    println!("h: {}", h);
-
-    // C = g^ab mod p
-    let h_i: BigUint = g[1].modpow(&(&a * &b), &prime);
-    println!("h_i: {}", h_i);
-
     let addr = "[::1]:50051".parse()?;
     let mut auth_service: AuthService = AuthService::default();
 
-    auth_service.p = prime;
-    auth_service.q = q;
-    auth_service.g = g;
-    auth_service.i = i;
-    auth_service.h = h;
-    auth_service.h_i = h_i;
-
     println!("auth_service: {:?}", auth_service);
+
+    // Connect to the database.
+    let (client, connection) =
+        tokio_postgres::connect("host=localhost user=postgres password=postgres", NoTls).await?;
+
+    // The connection object performs the actual communication with the database,
+    // so spawn it off to run on its own.
+    tokio::spawn(async move {
+        if let Err(e) = connection.await {
+            eprintln!("connection error: {}", e);
+        }
+    });
+
+    let init_file = fs::read_to_string(INIT_SQL)?;
+
+    // Execute the query.
+    client
+        .batch_execute(&init_file)
+        .await
+        .expect("Error executing schema.sql");
 
     Server::builder()
         .add_service(AuthServer::new(auth_service))

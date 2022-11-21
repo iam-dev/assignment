@@ -10,6 +10,7 @@ service Auth {
   rpc VerifyAuthentication(AuthenticationAnswerRequest) returns (AuthenticationAnswerResponse){}
 }
 
+
 message AuthServiceRequest {}
 
 message AuthServiceResponse {
@@ -22,6 +23,7 @@ message AuthServiceResponse {
 }
 
 message RegisterRequest { 
+
   string user = 1;
   string y1 = 2;
   string y2 = 3;
