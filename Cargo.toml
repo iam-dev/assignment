@@ -1,0 +1,36 @@
+[package]
+name = "zkp_grpc"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+[[bin]]
+name = "lib"
+path = "src/lib.rs"
+
+[[bin]]
+name = "main"
+path = "src/main.rs"
+
+[[bin]]
+name = "auth-server"
+path = "src/server.rs"
+
+[[bin]]
+name = "auth-client"
+path = "src/client.rs"
+
+[dependencies]
+tonic = "0.7"
+prost = "0.10"
+tokio = { version = "1.0", features = ["macros", "rt-multi-thread"] }
+num-primes = "0.2.1"
+num-traits = "0.2.15"
+modpow = "1.0.1"
+num-bigint = "0.4.3"
+protobuf = "3.2.0"
+rand = "0.8.5"
+uuid = { version = "1.2.2", features = ["v4", "v7", "js"]}
+
+[build-dependencies]
+tonic-build = "0.7"
