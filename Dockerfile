@@ -65,10 +65,10 @@ WORKDIR /app
 RUN USER=root apt-get update && apt-get install -y libpq-dev && rm -rf /var/lib/apt/lists/*
 
 # copy from builder
-COPY --from=builder /app/target/release/payments-server /app/
+COPY --from=builder /app/target/release/auth-server /app/
 
 # expose the port to the outside world
 EXPOSE 50051
 
 # run the app
-CMD ["./payments-server"]
+CMD ["./auth-server"]

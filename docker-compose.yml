@@ -1,0 +1,16 @@
+version: '3'
+services:
+  zkp-server:
+    image: server
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "50051:50051"
+  zkp-client:
+    image: client
+    build:
+      context: .
+      dockerfile: Dockerfile-client
+    depends_on:
+      - payments-server

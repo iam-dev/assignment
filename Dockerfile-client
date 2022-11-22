@@ -65,7 +65,7 @@ WORKDIR /app
 RUN USER=root apt-get update && rm -rf /var/lib/apt/lists/*
 
 # copy from builder
-COPY --from=builder /app/target/release/payments-client /app/
+COPY --from=builder /app/target/release/auth-client /app/
 
 # run the app
-CMD ["./payments-client"]
+CMD ["./auth-client"]

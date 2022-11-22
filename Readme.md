@@ -1,28 +1,19 @@
 
-
-https://medium.com/asecuritysite-when-bob-met-alice/rust-and-bulletproofs-towards-a-more-trusted-and-private-digital-world-6120dd721390
-
-
-# gRPC example in Rust
+# gRPC ZKP
 
 Run gRPC server
 ```
-cargo run --bin payments-server
+cargo run --bin server
 ```
 
 Run gRPC client
 ```
-cargo run --bin payments-client
+cargo run --bin client
 ```
 
 # Run with docker-compose
 ```
-docker-compose up -d -f
-```
-
-## Run Postgres db
-```
-docker-compose up -d -f docker-compose-db.yml
+docker-compose up -d
 ```
 
 # Run with docker update image
