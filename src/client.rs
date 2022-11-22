@@ -41,23 +41,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let g: BigUint = BigUint::from(g_temp);
     println!("g = {}", g);
 
-    let i_temp: u128 = (response.get_ref().i.clone()).parse().unwrap();
-    println!("i_temp = {}", i_temp);
-    let i: BigUint = BigUint::from(i_temp);
-    println!("i = {}", i);
-
     let h_temp: u128 = (response.get_ref().h.clone()).parse().unwrap();
     println!("h_temp = {}", h_temp);
     let h: BigUint = BigUint::from(h_temp);
     println!("h = {}", h);
 
-    let h_i_temp: u128 = (response.get_ref().h_i.clone()).parse().unwrap();
-    println!("h_i_temp = {}", h_i_temp);
-    let h_i: BigUint = BigUint::from(h_i_temp);
-    println!("h_i = {}", h_i);
-
     // Generate a secret number x
-    let x: BigUint = generate_random(10).unwrap();
+    //let x: BigUint = generate_random(10).unwrap();
+    let x: BigUint = BigUint::from(34u32);
     println!("x = {}", x);
 
     // Compute y1 and y2
@@ -81,7 +72,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Generate commitment C
     // Generate random number k
-    let k: BigUint = generate_random(20).unwrap();
+    //let k: BigUint = generate_random(20).unwrap();
+    let k: BigUint = BigUint::from(10u32);
     println!("k = {}", k);
     //r1 = g^k mod p
     let r1: BigUint = g.modpow(&k, &p);
@@ -116,8 +108,8 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     println!("auth_id = {}", auth_id);
 
     // compute s
-    // s = k - c * x mod q
-    let s: BigUint = (k.sub(c) * x) % q;
+    // s = k - c * x mod p
+    let s: BigUint = (x + k * c) % p;
     println!("s = {}", s);
 
     let verify_authentication_request: Request<AuthenticationAnswerRequest> =

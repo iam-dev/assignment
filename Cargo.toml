@@ -31,9 +31,6 @@ num-bigint = "0.4.3"
 protobuf = "3.2.0"
 rand = "0.8.5"
 uuid = { version = "1.2.2", features = ["v4", "v7", "js"]}
-postgres = "0.19.4"
-tokio-postgres = "0.7.7"
-fs = "0.0.5"
 
 [build-dependencies]
 tonic-build = "0.7"

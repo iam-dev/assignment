@@ -26,7 +26,6 @@ pub fn calculate_q(p: &BigUint) -> Result<BigUint, String> {
     let one: BigUint = BigUint::new(vec![1]);
     let two: BigUint = BigUint::new(vec![2]);
     let q: BigUint = (p - one) / two;
-
     // Check if the number is a Composite Number
     if Verification::is_composite(&q) {
         return Ok(q);
@@ -64,7 +63,7 @@ pub fn generators_g(p: &BigUint) -> Vec<BigUint> {
     println!("p_min_one {}", p_min_one.clone());
     println!("exp {}", exp);
 
-    for i in 2..100 {
+    for i in 2..10009 {
         let j: BigUint = BigUint::new(vec![i]);
         let modulo: BigUint = j.modpow(&exp, &p_min_one);
         println!("modulo {}", modulo);

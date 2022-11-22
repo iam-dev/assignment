@@ -17,9 +17,7 @@ message AuthServiceResponse {
   string p = 1;
   string q = 2;
   string g = 3;
-  string i = 4;
   string h = 5;
-  string h_i = 6;
 }
 
 message RegisterRequest { 
