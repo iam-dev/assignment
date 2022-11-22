@@ -20,6 +20,15 @@ path = "src/server.rs"
 name = "auth-client"
 path = "src/client.rs"
 
+
+[[bin]]
+name = "server-test"
+path = "src/server.functional.test.rs"
+
+[[bin]]
+name = "client-test"
+path = "src/client.functional.test.rs"
+
 [dependencies]
 tonic = "0.7"
 prost = "0.10"
@@ -31,6 +40,7 @@ num-bigint = "0.4.3"
 protobuf = "3.2.0"
 rand = "0.8.5"
 uuid = { version = "1.2.2", features = ["v4", "v7", "js"]}
+more-asserts = "0.3.1"
 
 [build-dependencies]
 tonic-build = "0.7"

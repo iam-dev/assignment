@@ -4,8 +4,8 @@ use authetications::{
     AuthenticationAnswerResponse, AuthenticationChallengeRequest, AuthenticationChallengeResponse,
     RegisterRequest, RegisterResponse,
 };
-use lib::{calculate_q, generate_prime, generate_random, generators_g};
-use num_primes::{BigUint, Generator};
+use lib::{calculate_q, generators_g};
+use num_primes::BigUint;
 use num_traits::Pow;
 use std::collections::HashMap;
 use tonic::{transport::Server, Request, Response, Status};
@@ -132,8 +132,10 @@ impl Auth for AuthService {
 
         let auth_id: String = Uuid::new_v4().to_string();
 
+        println!("Step 3.3) Generate random c");
         // Generate random c;
-        let c: BigUint = generate_random(5).unwrap();
+        //let c: BigUint = generate_random(10).unwrap();
+        let c: BigUint = BigUint::from(17u32);
         println!("c = {}", &c);
 
         let new_challenge: Authentication = Authentication::new(
@@ -255,7 +257,8 @@ impl Default for AuthService {
         //1) Setup steps
         println!("1) Setup steps");
         println!("Step 1.1) Generate Prime number p");
-        let prime: BigUint = generate_prime(5).unwrap();
+        // let prime: BigUint = generate_prime(10).unwrap();
+        let prime: BigUint = BigUint::from(31u32);
         println!("p: {}", prime);
 
         println!("Step 1.2) Calculate q, such that p = 2q + 1");
@@ -263,23 +266,27 @@ impl Default for AuthService {
         println!("q: {}", q);
 
         println!("Step 1.3) Generate random b");
-        let b: BigUint = Generator::new_composite(5);
+        //let b: BigUint = Generator::new_composite(10);
+        let b: BigUint = BigUint::from(2u32);
         println!("b: {}", b);
 
         println!("Step 1.4) Generate generators, such that g is a generator of Zp*");
-        let g: Vec<BigUint> = generators_g(&prime);
-        println!("g: {:?}", g);
+        let generators: Vec<BigUint> = generators_g(&prime);
+        println!("generators: {:?}", generators);
 
-        println!("Step 1.5) Calculate h");
+        // Let's choose generator g = 4
+        // g[0] = 4
+        let g: BigUint = generators[0].clone();
 
+        println!("Step 1.5) Compute h");
         // h = g^b mod p
-        let h: BigUint = g[0].modpow(&b, &prime);
+        let h: BigUint = g.modpow(&b, &prime);
         println!("h = g^b mod p = {}", h);
 
         return AuthService {
             p: prime,
             q,
-            g,
+            g: generators,
             h,
             users: Arc::new(Mutex::new(HashMap::new())),
             authentications: Arc::new(Mutex::new(HashMap::new())),

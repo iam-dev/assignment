@@ -4,7 +4,6 @@ use authetications::{
     AuthenticationAnswerResponse, AuthenticationChallengeRequest, AuthenticationChallengeResponse,
     RegisterRequest, RegisterResponse,
 };
-use lib::generate_random;
 use num_primes::BigUint;
 use tonic::{Request, Response};
 use uuid::Uuid;
@@ -48,10 +47,13 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
     let h: BigUint = BigUint::from(h_temp);
     println!("h = {}", h);
 
+    println!("Step 2.1) Choose secret number x");
     // Generate a secret number x
-    let x: BigUint = generate_random(10).unwrap();
+    //let x: BigUint = generate_random(10).unwrap();
+    let x: BigUint = BigUint::from(624u32);
     println!("x = {}", x);
 
+    println!("Step 2.2) Compute y1 and y2");
     // Compute y1 and y2
     //y1 = g^x mod p
     let y1: BigUint = g.modpow(&x, &p);
@@ -71,11 +73,15 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     println!("Register RESPONSE={:?}", &register_response);
 
+    println!("3) Login process");
+    println!("Step 3.1) Random k");
     // Generate commitment C
     // Generate random number k
     //let k: BigUint = generate_random(20).unwrap();
-    let k: BigUint = generate_random(10).unwrap();
+    let k: BigUint = BigUint::from(492u32);
     println!("k = {}", k);
+
+    println!("Step 3.2) Compute r1 and r2");
     //r1 = g^k mod p
     let r1: BigUint = g.modpow(&k, &p);
     println!("r1 = {}", r1);

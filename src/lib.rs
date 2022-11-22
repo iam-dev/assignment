@@ -1,8 +1,6 @@
+use more_asserts as ma;
 use num_primes::{BigUint, Generator, Verification};
 use num_traits::cast::ToPrimitive;
-// use num_traits::Zero;
-// use std::collections::HashMap;
-// use std::convert::TryInto;
 
 // Generate a random prime number of size bits
 // Parameters: size: size of the prime number in bits
@@ -26,12 +24,8 @@ pub fn calculate_q(p: &BigUint) -> Result<BigUint, String> {
     let one: BigUint = BigUint::new(vec![1]);
     let two: BigUint = BigUint::new(vec![2]);
     let q: BigUint = (p - one) / two;
-    // Check if the number is a Composite Number
-    if Verification::is_composite(&q) {
-        return Ok(q);
-    } else {
-        return Err("Error: The number is not a composite number".to_string());
-    }
+
+    return Ok(q);
 }
 
 // Generate random number
@@ -40,12 +34,7 @@ pub fn calculate_q(p: &BigUint) -> Result<BigUint, String> {
 pub fn generate_random(size: usize) -> Result<BigUint, String> {
     // Generate 2 randoms numbers a and b
     let a: BigUint = Generator::new_composite(size);
-
-    if Verification::is_composite(&a) {
-        return Ok(a);
-    } else {
-        return Err("Error: The number is not a composite number".to_string());
-    }
+    return Ok(a);
 }
 
 // Generate the generators g, which is of the order of q and is in the group 𝑍∗𝑝.
@@ -63,14 +52,14 @@ pub fn generators_g(p: &BigUint) -> Vec<BigUint> {
     println!("p_min_one {}", p_min_one.clone());
     println!("exp {}", exp);
 
-    for i in 2..10009 {
+    for i in 2..10000 {
         let j: BigUint = BigUint::new(vec![i]);
         let modulo: BigUint = j.modpow(&exp, &p_min_one);
         println!("modulo {}", modulo);
 
         // test if modulo is not congruent to 1 mod p
         let convert_module: u128 = modulo.to_u128().unwrap();
-        if convert_module > 1 {
+        if convert_module != 1 {
             result.push(BigUint::new(vec![i]));
         }
 
@@ -80,4 +69,47 @@ pub fn generators_g(p: &BigUint) -> Vec<BigUint> {
         }
     }
     return result;
+}
+
+fn main() {}
+
+#[cfg(test)]
+#[test]
+fn generate_prime_test() {
+    let _x: BigUint = generate_prime(512).unwrap();
+    assert!(Verification::is_prime(&_x));
+}
+
+#[cfg(test)]
+#[test]
+fn calculate_q_test() {
+    // q: (p - 1) / 2
+    let p: BigUint = BigUint::from(23u32);
+    let expected: BigUint = BigUint::from(11u32);
+    let q: BigUint = calculate_q(&p).unwrap();
+    assert_eq!(q, expected);
+}
+
+#[cfg(test)]
+#[test]
+fn generate_random_test() {
+    let _x: BigUint = generate_random(512).unwrap();
+}
+
+#[cfg(test)]
+#[test]
+fn generators_g_test() {
+    let two: BigUint = BigUint::from(2u32);
+    let four: BigUint = BigUint::from(4u32);
+    let six: BigUint = BigUint::from(6u32);
+    let eight: BigUint = BigUint::from(8u32);
+    let ten: BigUint = BigUint::from(10u32);
+    let p: BigUint = BigUint::from(17u32);
+    let generators: Vec<BigUint> = generators_g(&p);
+    assert_eq!(generators[0], two);
+    assert_eq!(generators[1], four);
+    assert_eq!(generators[2], six);
+    assert_eq!(generators[3], eight);
+    assert_eq!(generators[4], ten);
+    ma::assert_le!(generators.len(), 5);
 }

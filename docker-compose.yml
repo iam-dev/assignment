@@ -13,4 +13,4 @@ services:
       context: .
       dockerfile: Dockerfile-client
     depends_on:
-      - payments-server
+      - zkp-server
